@@ -1,0 +1,105 @@
+#############################################################
+##################               ############################
+################## GRAMMER RULES ############################
+##################               ############################
+#############################################################
+
+<program> ::= <statement>+
+
+<user_defined> ::= 'class'
+				|  'enum'
+
+<basic_type> ::= 'int'
+		|  'string'
+		|  'bool'
+		|  'none'
+		
+<type> ::= <basic_type>
+		|  <user_defined>
+
+<declaration> ::= 'var' <identifier>			 '=' <expression>
+			|     'var' <identifier>  ':' <type> '=' <expression>
+
+<parent_classes> ::= <identifier> (',' <parent_classes>+) <block>
+
+<class_decalation> ::= 'class' <identifier> '(' <parameters> ')' (':' <parent_classes>)? <block>
+
+<parameters> ::= <type> <identifier> (',' <parameters> )?
+
+<function> ::= 'fn' <identifier> '(' <parameters> ')' (':' <type>)? <block>
+
+<block> ::= '{' <statement>+ '}'
+
+<statement> ::= <declaration>
+			|   <if-statement>
+			|   <while-statement>
+			|   <for-statement>
+			|   <when-statement>
+			|   <function>
+			|   <return-statement>
+			|   <expression>
+			|   <error-handling>
+			|   'done'
+
+<if-statement> ::= 'if' '(' <logical_expressions_list> ')' <block> ('else' <statement>)?
+
+<while-statement> ::= 'while' '(' <logical_expressions_list> ')' <block>
+
+<for-statement> ::= 'for' '(' <for_expression> ')' <block>
+
+<when-statement> ::= 'when' '(' <identifier> ')' <when-inner-statement>+
+
+<when-inner-statement> ::= 'case' <expression> ':' <block>
+
+<return-statement> ::= 'return' <expression>?
+
+<error-handling> ::= 'try' <block> 'error' <expression> <block>
+
+<assignment> ::= <identifier> '=' <expression>
+
+<comparision_operator> ::= '==' | '<' | '<=' | '>' | '>='
+
+<conjunction_operator> ::= 'and' | 'or' | 
+
+<logical_expression> ::= <identifier> <comparision_operator> <identifier> 
+					|    <bool_literal>
+
+<logical_expressions_list> ::= <logical_expression> (<conjunction_operator> <logical_expression>)?
+
+<range> ::= <number> 'to' <number>
+
+<for_expression> ::= <identifier> 'in' <range>
+				|    <expression> ',' <assignment>
+				|    <identifier> ',' <identifier>+ 'in' <list_identifier>
+
+<expression> ::= <bool_literal>
+			|    <logical_expression>
+			|    <statement>
+
+<list_identifier> ::= <identifier> having <type> as list or array
+
+<number> ::= <digit>+
+
+<character> ::= any valid ascii character (escape characters allowed)
+
+<bool_literal> ::= 'true' | 'false'
+
+<string_literal> ::= '"' <character>* '"'
+
+<identifier> ::= <letter>+ '_'+ <digit>+
+
+<commtent> ::= <single_line_comment> | <multiline_line_comment>
+
+<single_line_comment> ::= '//' <character>+
+
+<multiline_line_comment> ::= '|||' <character>+ '|||'
+
+<digit> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' |
+
+<letter> ::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
+
+##############################################################
+##################               #############################
+################## END GRAMMER RULES #########################
+##################               #############################
+##############################################################
