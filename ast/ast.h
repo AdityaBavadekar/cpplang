@@ -91,7 +91,7 @@ class StringExprPoint : public Null{
 		bool sHasExpr;
 		string_op str_op;
 		StringExprPoint* se2;
-		//NumberExprPoint* multiplier;
+		//NumberExprPoint* multiplier; TODO()
 		void tree(){
 			std::cout<< "StringExprPoint START" << std::endl;
 			std::cout<< "Primary : "<< s1 << std::endl;
@@ -126,48 +126,11 @@ class Expression : public Null{
 		void tree(){
 			std::cout<< "Main" << std::endl;
 		}
-		union Child {
-			NumberExprPoint numExp;
-			StringExprPoint stringExp; 
-			BoolExprPoint boolExp;
-			~Child(){};
-			Child(){};
-			Child(int type){
-				std::cout << "Creating Child\n";
-				switch(type){
-					case NUMBER_EXP:{
-						numExp = NumberExprPoint();
-						break;
-					}
-					case STRING_EXP:{
-						stringExp = StringExprPoint();
-						break;
-					}
-					case BOOL_EXP:{
-						boolExp = BoolExprPoint();
-						break;
-					}
-				}
-			};
-			Child(const Expression &ex){
-				Child ch;
-				if(ex.type == NUMBER_EXP) ch.numExp = ex.child.numExp;
-				if(ex.type == STRING_EXP) ch.stringExp = ex.child.stringExp;
-				if(ex.type == BOOL_EXP) ch.boolExp = ex.child.boolExp;
-			}
-			
-		};
-		Child child;
+		NumberExprPoint numExp;
+		StringExprPoint stringExp; 
+		BoolExprPoint boolExp;
 		~Expression(){};
-		Expression operator=(const Expression &ex){
-			Expression new_ex(ex.type);
-			if(ex.type == NUMBER_EXP) new_ex.child.numExp = ex.child.numExp;
-			if(ex.type == STRING_EXP) new_ex.child.stringExp = ex.child.stringExp;
-			if(ex.type == BOOL_EXP) new_ex.child.boolExp = ex.child.boolExp;
-			return new_ex;
-		}
-		Expression(const Expression &ex):type(ex.type),child(ex){};
-		Expression(expr_type _type): Null(false), type(_type), child(type){};
+		Expression(expr_type _type): Null(false), type(_type){};
 		Expression(): Null(true){};
 };
 

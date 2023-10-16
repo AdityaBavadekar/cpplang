@@ -150,6 +150,7 @@ void Parser::handleKeyword(){
 		index++; //current token = EXPRESSION
 		//Parse Expr
 		Expression exp = parseExpr();
+		std::cout << "bool() -> " << "PARSING COMPLETED" << std::endl;
 	}
 	if (skeyword == "float"){
 		
@@ -249,9 +250,9 @@ void Parser::handleKeyword(){
 			}
 			index++; //current token = LGREATER
 		
-			if(!expect(IDENTIFIER) && !expect(K_INT) || !expect(K_STRING) || !expect(K_BOOL)){
+			if(!expect(IDENTIFIER) || !expect(K_INT) || !expect(K_STRING) || !expect(K_BOOL)){
 				if(!cnext()) gnext(); //Throws error in the method itself
-				fire_syntax_error("Expected a Return type got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+				fire_syntax_error("Expected return type got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
 			}
 			index++; //current token = IDENTIFIER or Data Type
 			Token return_type_token = tokens[index];
@@ -270,20 +271,22 @@ void Parser::handleKeyword(){
 		
 		if(expect(LINE_END)){
 			//function body is on next line
-			index++;
+			index++;//current token = LINE_END
 		}
-		
+
 		/* Parse Function Body */
 		std::vector<Expression> body; //TODO(USE Statement class)
-		while(cnext() && expect(CIRCLEBRACKETEND)){
+		while(cnext() && !expect(CURLYBRACKETEND)){
 			index++;
 			//Parse each line of function body
 			if(expect(LINE_END)){
+				std::cout<<"Skipping Line ending\n";
 				//function body is on next line
 				index++;
 				continue;
 			}
 			body.push_back(parseExpr());
+			std::cout << index << "] Parsed Exp > Tokens : " << body.size() << std::endl;
 		}
 				
 		if(expect(LINE_END)){
@@ -327,16 +330,17 @@ Expression Parser::parseExpr(int id){
 	//STRING EXPRESSION PARSING
 	if(tokens[index].type == STRING){
 		StringExprPoint str = parseStringExpr();
+		str.tree();
 		Expression expstr(STRING_EXP);
-		expstr.child.stringExp = str;
+		expstr.stringExp = str;
 		return expstr;
 	}
 	
 	//BOOL EXPRESSION PARSING
-	if(tokens[index].type == BOOL){
+	if(tokens[index].type == K_FALSE || tokens[index].type == K_TRUE ){
 		BoolExprPoint _bool = parseBoolExpr();
 		Expression expbool(BOOL_EXP);
-		expbool.child.boolExp = _bool;
+		expbool.boolExp = _bool;
 		return expbool;
 	}
 	
@@ -344,11 +348,10 @@ Expression Parser::parseExpr(int id){
 	if(tokens[index].type == INTEGER){
 		NumberExprPoint num = parseIntExpr();
 		Expression expnum(NUMBER_EXP);
-		expnum.child.numExp = num;
+		expnum.numExp = num;
 		return expnum;
 	}
 }
-
 
 StringExprPoint Parser::parseStringExpr(int id){
 	
@@ -409,7 +412,7 @@ StringExprPoint Parser::parseStringExpr(int id){
 }
 
 BoolExprPoint Parser::parseBoolExpr(int id){
-	if (tokens[index].type != BOOL){
+	if (tokens[index].type != K_FALSE && tokens[index].type != K_TRUE){
 		Token current = tokens[index];
 		fire_illegal_argument_error("Token at current index is not of type Boolean but Boolean was required, got '"+current.data+"'", current.columnno, current.lineno, current.file_path);
 	}

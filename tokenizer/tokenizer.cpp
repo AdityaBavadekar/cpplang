@@ -290,11 +290,13 @@ void CTokenizer::_tokenize(){
 					break;
 			}
 		}
-			
-		addToken(LINE_END, "...");
+		if(tokens.size() > 0 && tokens[column_counter-1].type != LINE_END){
+			//Avoid adding multiple consecutive tokens of line end
+			addToken(LINE_END, "...");
+		}
     }
 
-	addToken(END_OF_FILE,"...");
+	addToken(END_OF_FILE,"EOF");
 	
 }
 
