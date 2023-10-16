@@ -1,6 +1,7 @@
 #ifndef TOKENIZER_H
 #define TOKENIZER_H
-#include "../constants/constants.h"
+#include "..\constants\constants.h"
+#include "..\inter\interactive.h"
 #include <string>
 #include <sstream>
 #include <vector>
@@ -16,7 +17,7 @@ struct Token{
 
 	std::string to_string(){
 		std::stringstream s;
-		s << " TOKEN [" << getTypeStringforType(type) << "]:[" << data << "]";
+		s << "[(" << getTypeStringforType(type) << ") " << data << "]";
 		return s.str();
 	}
 	
@@ -26,6 +27,8 @@ struct Token{
 class CTokenizer {
 	private:
 		std::string file_path;
+		Mediator* md;
+		bool interactive;
 		int line_counter;
 		int column_counter;
 		std::string cline; // Current Line
@@ -33,15 +36,15 @@ class CTokenizer {
 		std::ifstream opened_file;
 		int columnlimit;
 	public:
-	
+		CTokenizer(std::string name, Mediator* md);
 		CTokenizer(std::string _file_path);
-		// CTokenizer(std::string _file_path): file_path(_file_path), line_counter(0), column_counter(0), cline(""){};
 		void tokenize();
 		std::string string_list();
-		
+		std::vector<Token> get_tokens();
+		~CTokenizer();
 	private:
-		void _tokenize();
 		bool load_next_line();
+		void _tokenize();
 		void parseInteger();
 		void tryParseIdentifier();
 		void parseStringLiteral();
@@ -53,6 +56,6 @@ class CTokenizer {
 
 };
 
-void tokenizer_Main(std::string file_path);
+std::vector<Token> tokenizer_Main(std::string file_path);
 
 #endif  // TOKENIZER_H

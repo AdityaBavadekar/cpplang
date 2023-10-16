@@ -1,99 +1,231 @@
 #include "constants.h"
 #include<iostream>
 #include<string>
+#include "..\helpers\helpers.h"
 using namespace std;
 
 std::string getTypeStringforType(int type){
 	switch (type)
 	{
-	case IDENTIFIER:
-		return "identifier";
-	case INTEGER:
-		return "integer";
-	case BOOL:
-		return "boolean";
-	case ASSIGNMENT:
-		return "assignment";
-	case PRINT:
-		return "print";
-	case STRING:
-		return "string";
-	case END_OF_FILE:
-		return "endoffile";
-	case NEWLINE:
+	/*  */
+	case IDENTIFIER :
+		return "IDENTIFIER";
+		break;
+	case INTEGER :
+		return "INTEGER";
+		break;
+	case ASSIGNMENT :
+		return "ASSIGNMENT";
+		break;
+	case PRINT :
+		return "PRINT";
+		break;
+	case STRING :
+		return "STRING";
+		break;
+	case END_OF_FILE :
+		return "END_OF_FILE";
+		break;
+	case BOOL :
+		return "BOOL";
+		break;
+	case NEWLINE :
 		return "NEWLINE";
-	case INDENT:
+		break;
+	case INDENT :
 		return "INDENT";
-	case COMMA:
+		break;
+	case COMMA :
 		return "COMMA";
-	case COLON:
+		break;
+	case COLON :
 		return "COLON";
-	case SEMI:
+		break;
+	case SEMI :
 		return "SEMI";
-	case PLUS:
+		break;
+	case PLUS :
 		return "PLUS";
-	case MINUS:
+		break;
+	case MINUS :
 		return "MINUS";
-	case RSLASH:
+		break;
+	case RSLASH :
 		return "RSLASH";
-	case LSLASH:
+		break;
+	case LSLASH :
 		return "LSLASH";
-	case GREATER:
-		return "GREATER";
-	case LESS:
-		return "LESS";
-	case EQUAL:
+		break;
+	case LGREATER :
+		return "LGREATER";
+		break;
+	case LLESS :
+		return "LLESS";
+		break;
+	case EQUAL :
 		return "EQUAL";
-	case DOT:
+		break;
+	case DOT :
 		return "DOT";
-	case EXCLAMATION:
+		break;
+	case EXCLAMATION :
 		return "EXCLAMATION";
-	case AT:
+		break;
+	case AT :
 		return "AT";
-	case HASHTAG:
+		break;
+	case HASHTAG :
 		return "HASHTAG";
-	case DOLLAR:
+		break;
+	case DOLLAR :
 		return "DOLLAR";
-	case PERCENT:
+		break;
+	case PERCENT :
 		return "PERCENT";
-	case UP:
+		break;
+	case UP :
 		return "UP";
-	case AND:
+		break;
+	case AND :
 		return "AND";
-	case STAR:
+		break;
+	case STAR :
 		return "STAR";
-	case UNDERSCORE:
+		break;
+	case UNDERSCORE :
 		return "UNDERSCORE";
-	case TILDE:
+		break;
+	case TILDE :
 		return "TILDE";
-	case BACKTIK:
+		break;
+	case BACKTIK :
 		return "BACKTIK";
-	case SINGLEQUOTE:
+		break;
+	case SINGLEQUOTE :
 		return "SINGLEQUOTE";
-	case DOUBLEQUOTE:
+		break;
+	case DOUBLEQUOTE :
 		return "DOUBLEQUOTE";
-	case CIRCLEBRACKETSTART:
+		break;
+	case CIRCLEBRACKETSTART :
 		return "CIRCLEBRACKETSTART";
-	case CIRCLEBRACKETEND:
+		break;
+	case CIRCLEBRACKETEND :
 		return "CIRCLEBRACKETEND";
-	case SQUAREBRACKETSTART:
+		break;
+	case SQUAREBRACKETSTART :
 		return "SQUAREBRACKETSTART";
-	case SQUAREBRACKETEND:
+		break;
+	case SQUAREBRACKETEND :
 		return "SQUAREBRACKETEND";
-	case CURLYBRACKETSTART:
+		break;
+	case CURLYBRACKETSTART :
 		return "CURLYBRACKETSTART";
-	case CURLYBRACKETEND:
+		break;
+	case CURLYBRACKETEND :
 		return "CURLYBRACKETEND";
-	case ELIPSIS:
+		break;
+	case PIPE :
+		return "PIPE";
+		break;
+	case USES :
+		return "USES";
+		break;
+	case SPACE :
+		return "SPACE";
+		break;
+	case ELIPSIS :
 		return "ELIPSIS";
-	case TYPE_IGNORE:
-		return "type_ignore";
-	case END:
-		return "end";
-	case OTHER:
-		return "other";
+		break;
+	case TYPE_IGNORE :
+		return "TYPE_IGNORE";
+		break;
+	case KEYWORD :
+		return "KEYWORD";
+		break;
+	case K_IF :
+		return "IF";
+		break;
+	case K_ELSE :
+		return "ELSE";
+		break;
+	case K_WHILE :
+		return "WHILE";
+		break;
+	case K_WHEN :
+		return "WHEN";
+		break;
+	case K_FOR :
+		return "FOR";
+		break;
+	case K_TRY :
+		return "TRY";
+		break;
+	case K_RETURN :
+		return "RETURN";
+		break;
+	case K_INT :
+		return "INT";
+		break;
+	case K_STRING :
+		return "STRING";
+		break;
+	case K_BOOL :
+		return "BOOL";
+		break;
+	case K_BREAK :
+		return "BREAK";
+		break;
+	case K_CONTINUE :
+		return "CONTINUE";
+		break;
+	case K_USES :
+		return "USES";
+		break;
+	case K_FUN :
+		return "FUN";
+		break;
+	case K_CLASS :
+		return "CLASS";
+		break;
+	case K_ENUM :
+		return "ENUM";
+		break;
+	case K_PUBLIC :
+		return "PUBLIC";
+		break;
+	case K_PRIVATE :
+		return "PRIVATE";
+		break;
+	case K_PROTECTED :
+		return "PROTECTED";
+		break;
+	case K_NULL :
+		return "NULL";
+		break;
+	case K_TRUE :
+		return "TRUE";
+		break;
+	case K_FALSE :
+		return "FALSE";
+		break;
+	case K_AS :
+		return "AS";
+		break;
+	case K_THIS :
+		return "THIS";
+		break;
+	case K_CLEAR :
+		return "CLEAR";
+		break;
+	case K_IN :
+		return "IN";
+		break;
+	case LINE_END :
+		return "LINE_END";
+		break;
 	default:
-		return "UNK";
+		return "UNK(="+int_to_string(type)+")";
 		break;
 	}
 }
