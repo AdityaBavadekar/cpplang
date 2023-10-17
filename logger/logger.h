@@ -13,8 +13,9 @@ class Logger{
 		Logger(std::string _name):name(_name){};
 		
 		template<typename T>
-		Logger& operator<<(const T& data){
-			std::cout << name << " : " << data << std::endl;
+		Logger operator<<(const T data){
+			std::cout << "[L][" << name << "]:" << data << std::endl;
+			return this;
 		}
 	
 };

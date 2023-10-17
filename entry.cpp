@@ -2,6 +2,7 @@
 #include<string>
 #include "tokenizer/tokenizer.h"
 #include "helpers/helpers.h"
+#include "ast/ast.h"
 #include "helpers/errors.h"
 #include "inter/interactive.h"
 #include "parser/parser.h"
@@ -39,8 +40,15 @@ int main(int argc, char *argv[]){
 	}
 	
 	std::string path = argv[1];
-	std:vector<Token> tokens = tokenizer_Main(path);
-	Parser parser = Parser(tokens);
+	std::vector<Token> tokens = tokenizer_Main(path);
+	std::vector<Expression> exprs;
+	Parser parser = Parser(tokens, &exprs); //TODO(Use Pointer for Tokens)
 	parser.parse();
+	std::cout << "\n--- ALL PARSING COMPLETED ---"<< std::endl;
+	for (size_t i = 0; i < exprs.size(); i++)
+	{
+		exprs[i].tree();
+	}
+	
 	return 0;
 }

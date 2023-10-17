@@ -4,14 +4,6 @@
 #include "../ast/ast.h"
 #include<string>
 #include<sstream>
-/* 
-#define TO_STRING(value) \
-	[](){\
-		std::stringstream ss;\
-		ss << value;\
-		return ss.str();\
-	}() 
-*/
 
 #define LOG(value) \
 	[](){\

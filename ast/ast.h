@@ -52,6 +52,12 @@ enum string_op {
 	STR_MUL=1
 };
 
+#define tp_identifier std::string
+
+class AbstPrintable{
+	public: virtual void tree() = 0;
+};
+
 struct Null{
 	/* 
 	True represents null value
@@ -62,7 +68,7 @@ struct Null{
 	Null(bool b):isnull(b){};
 };
 
-class NumberExprPoint : public Null{
+class NumberExprPoint : public Null, public AbstPrintable{
 	public:
 		int n1;
 		/* If n2 is not present n2 = 0 and op = OP_ADD */
@@ -71,46 +77,68 @@ class NumberExprPoint : public Null{
 		num_operation op;
 		NumberExprPoint* ne2;
 		void tree(){
-			std::cout<< "NumberExprPoint START" << std::endl;
-			std::cout<< "Primary : "<< n1 << std::endl;
-			std::cout<< "operation : " << op << std::endl;
-			if(hasExpr){
-				std::cout<< "Secondary : ";
-				ne2->tree();
-			}else std::cout << "Secondary : " << n2 << std::endl;
-			std::cout<< "NumberExprPoint END" << std::endl;
+			std::cout<< "[NumberExpr " << n1 << "]";
+			switch(op){
+				case OP_ADD:{
+					std::cout << " + ";
+					break;
+				}
+				case OP_SUB:{
+					std::cout << " - ";
+					break;
+				}
+				case OP_DIV:{
+					std::cout << " / ";
+					break;
+				}
+				case OP_MUL:{
+					std::cout << " * ";
+					break;
+				}
+			}
+			if(hasExpr && ne2 != nullptr) ne2->tree();
+			if(!hasExpr) std::cout << "[" << n2 << "]" << std::endl;
 		}
 		NumberExprPoint(int primary): Null(false),n1(primary){};
 		NumberExprPoint():Null(true){};
 };
 
-class StringExprPoint : public Null{
+class StringExprPoint : public Null,public AbstPrintable{
 	public:
 		std::string s1;
 		std::string s2;
 		bool sHasExpr;
 		string_op str_op;
 		StringExprPoint* se2;
-		//NumberExprPoint* multiplier; TODO()
+		NumberExprPoint* multiplier;
 		void tree(){
-			std::cout<< "StringExprPoint START" << std::endl;
-			std::cout<< "Primary : "<< s1 << std::endl;
-			std::cout<< "operation : " << str_op << std::endl;
-			if(sHasExpr){
-				std::cout<< "Secondary : ";
-				se2->tree();
-			}else std::cout << "Secondary : " << s2 << std::endl;
-			std::cout<< "StringExprPoint END" << std::endl;
+			std::cout<< "[StringExpr '" << s1 << "']";
+			switch(str_op){
+				case STR_ADD:{
+					std::cout << " + ";
+					break;
+				}
+				case STR_MUL:{
+					std::cout << " * ";
+					break;
+				}
+			}
+			if(sHasExpr && str_op == STR_ADD) se2->tree();
+			if(sHasExpr && str_op == STR_MUL) multiplier->tree();
+			else std::cout << "['" << s2 << "']" << std::endl;
 		}
-		StringExprPoint(std::string primary):Null(false),s1(primary),s2(""),se2(nullptr){};
-		StringExprPoint():Null(true),s1(""),s2(""),str_op(STR_ADD),se2(nullptr){};
+		StringExprPoint(std::string primary):Null(false),s1(primary),s2(""),multiplier(nullptr),se2(nullptr){};
+		StringExprPoint():Null(true),s1(""),s2(""),str_op(STR_ADD),multiplier(nullptr),se2(nullptr){};
 };
 
-class BoolExprPoint : public Null{
+class BoolExprPoint : public Null,public AbstPrintable{
 	public:
 		bool value;
 		void tree(){
-			std::cout<< "Booleal value (" << value << ")" << std::endl;
+			std::string v;
+			if (value) v = "true";
+			else v = "false";
+			std::cout<< "[Boolean " << v << "]" << std::endl;
 		}
 		BoolExprPoint(bool v):Null(false),value(v){};
 		BoolExprPoint():Null(true){};
@@ -123,15 +151,45 @@ enum expr_type {
 class Expression : public Null{
 	public:
 		expr_type type;
-		void tree(){
-			std::cout<< "Main" << std::endl;
-		}
 		NumberExprPoint numExp;
 		StringExprPoint stringExp; 
 		BoolExprPoint boolExp;
 		~Expression(){};
+		void tree(){
+			switch (type)
+			{
+			case NUMBER_EXP:
+				numExp.tree();
+				break;
+			case STRING_EXP:
+				stringExp.tree();
+				break;
+			case BOOL_EXP:
+				boolExp.tree();
+				break;
+			default:
+				break;
+			}
+		}
 		Expression(expr_type _type): Null(false), type(_type){};
 		Expression(): Null(true){};
+};
+
+struct ConstructorParam{
+	tp_identifier name;
+	tp_identifier type;
+};
+
+class FunctionStatement : public Null{
+	public:
+		tp_identifier name; 
+		std::vector<Expression> body;
+		std::vector<ConstructorParam> params;
+		std::string return_type;
+		void tree(){
+			std::cout<< "FunctionStatment " << name << "("<< params.size() << " args){" << body.size() <<" exprs }" << std::endl;
+		}
+		FunctionStatement(tp_identifier _name):name(_name){};
 };
 
 class Number: public Null{

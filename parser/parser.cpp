@@ -10,29 +10,29 @@
 #include<vector>
 using namespace std;
 
-
-Parser::Parser(std::vector<Token> _tokens) : tokens(_tokens), index(0){	
-}
+#define LOG_TOKEN(msg) std::cout << __LINE__ << " Current Token : " << tokens[index].to_string();\
+	std::cout << "\t-MSG:" << msg << std::endl;
+Parser::Parser(std::vector<Token> _tokens, std::vector<Expression>* _returnExprs) : tokens(_tokens), returnExpressions(_returnExprs), index(0),logger("Parser"){}
 
 void Parser::parse(){
 	_parse();
 }
 
 void Parser::_parse(){
+	std::cout << "Parsing..." << std::endl;
 	while(hasNextToken()){
 		Token tk = tokens[index];
+		LOG_TOKEN("Parser Loop Token");
+		
 		if(tk.type == END_OF_FILE) break;
 		
-		if(tk.type >= 45 && tk.type <= 70){
-			//Keyword
-			handleKeyword();
-		}
-		if(tk.type == IDENTIFIER){
-			handleIdentifier();
-		}
+		if(tk.type >= 45 && tk.type <= 70)	handleKeyword(returnExpressions);
+		
+		if(tk.type == IDENTIFIER) handleIdentifier();
+		
 		index++;
 	}
-	std::cout << "Normal program executed." << std::endl;
+	std::cout << "******* Tokens Parsed without Errors ******* " << std::endl;
 }
 
 void Parser::skipSpace(){
@@ -76,11 +76,16 @@ bool Parser::expect(int type){
 	return tokens[index+1].type == type;
 }
 
-void Parser::handleKeyword(){
+
+void Parser::addExpression(Expression exp, std::vector<Expression>* returnExprs = nullptr){
+	if(returnExprs == nullptr) returnExpressions->push_back(exp);
+	else returnExprs->push_back(exp);
+}
+
+void Parser::handleKeyword(std::vector<Expression>* returnExprs = nullptr){
 	Token tk = tokens[index];
 	std::string skeyword = tk.data;
-	std::cout << "Keyword : " << skeyword << std::endl;
-
+	LOG_TOKEN("Keyword Token");
 	if (skeyword == "class"){
 		
 	}
@@ -89,47 +94,61 @@ void Parser::handleKeyword(){
 	if (skeyword == "int"){
 		
 		/// int IDENTIFIER '=' expr
-		
+		LOG_TOKEN("Keyword.int Token before Identifier");
 		std::cout << "int() -> " << tokens[index].data << std::endl;
 		if(!expect(IDENTIFIER)){
 			if(!cnext()) gnext(); //Throws error in the method itself
 			 	fire_syntax_error("Expected Identifier or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
 		}
 		index++;
+		std::string name = tokens[index].data;
+		LOG_TOKEN("Keyword.int Token after Identifier");
 		
-		std::cout << "int() -> " << tokens[index].data << std::endl;
+		LOG_TOKEN("Keyword.int Token before Equal");
 		if(!expect(EQUAL)){
 			if(!cnext()) gnext(); //Throws error in the method itself
 			fire_syntax_error("Expected '=' or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
 		}
 		index++;
-		std::cout << "int() -> " << tokens[index].data << std::endl;
+		
+		LOG_TOKEN("Keyword.int Token after Equal.1");
 		index++;
+		
+		LOG_TOKEN("Keyword.int Token after Equal.2");
 		//Parse Expr
 		Expression exp = parseExpr();
 		
+		LOG_TOKEN("Keyword.int Token after parseExpr");
+		addExpression(exp, returnExprs);
 		std::cout << "int() -> " << "PARSING COMPLETED" << std::endl;
 		return;
 	}
 	if (skeyword == "string"){
 		
 		/// string IDENTIFIER '=' expr 
-		std::cout << "string() -> " << tokens[index].data << std::endl;
+		LOG_TOKEN("Keyword.string Token before Identifier");
 		if(!expect(IDENTIFIER)){
 			if(!cnext()) gnext(); //Throws error in the method itself
 			fire_syntax_error("Expected Identifier or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
 		}
 		index++;
-		std::cout << "string() -> " << tokens[index].data << std::endl;
+		std::string name = tokens[index].data;
+		LOG_TOKEN("Keyword.string Token after Identifier");
 		if(!expect(EQUAL)){
 			if(!cnext()) gnext(); //Throws error in the method itself
 			fire_syntax_error("Expected '=' or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
 		}
 		index++;
-		std::cout << "string() -> " << tokens[index].data << std::endl;
+		
+		LOG_TOKEN("Keyword.string Token after Equal.1");
 		index++;
+		
+		LOG_TOKEN("Keyword.string Token after Equal.2");
 		//Parse Expr
 		Expression exp = parseExpr();
+		
+		LOG_TOKEN("Keyword.string Token after parseExpr");
+		addExpression(exp, returnExprs);
 		std::cout << "string() -> " << "PARSING COMPLETED" << std::endl;
 		return;
 	}
@@ -150,6 +169,7 @@ void Parser::handleKeyword(){
 		index++; //current token = EXPRESSION
 		//Parse Expr
 		Expression exp = parseExpr();
+		addExpression(exp, returnExprs);
 		std::cout << "bool() -> " << "PARSING COMPLETED" << std::endl;
 	}
 	if (skeyword == "float"){
@@ -167,9 +187,28 @@ void Parser::handleKeyword(){
 		}
 		index++;
 		index++;
-		//Parse Expr
+
+		//Parse Expr TODO()
 	}
 	if (skeyword == "return"){
+		index++;// currentToken = return
+		std::vector<Expression> exprs;
+		while(!expect(LINE_END) && cnext()){
+			Expression e = (parseExpr());
+			if(!e.isnull) exprs.push_back(e);
+			else{
+				Token current  = tokens[index];
+				if(!current.type == IDENTIFIER){
+					fire_syntax_error("Expected an expression or identifier, got '" + current.data + "'", current.columnno, current.lineno, current.file_path);
+				}else{
+					// Expression ex(TYPE_IDENTIFIER);
+					// exprs.push_back() TODO()
+				}
+			}
+			index++;
+		}
+		std::cout << "Return statement parsed.\n";
+		return;
 		// return
 		// return IDENTIFIER
 	}
@@ -187,6 +226,64 @@ void Parser::handleKeyword(){
 			.......
 		
 		*/
+		bool traverseMode = false;
+		std::string name1(""), name2("");
+		if(!expect(IDENTIFIER)){
+			if(!cnext()) gnext(); //Throws error in the method itself
+			fire_syntax_error("Expected Identifier or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+		}
+		index++;
+		name1 = tokens[index].data;
+		if(index+2 < tokens.size() && tokens[index+2].type == IDENTIFIER){
+			if(!expect(COMMA)){
+				fire_syntax_error("Expected ',' before '" + tokens[index+2].data + "' got '" + gnext().data + "'", gnext().columnno, gnext().lineno, gnext().file_path);
+			}else{
+				traverseMode = true;
+				index++;// token = ','
+				index++;// token = IDENTIFIER
+				name2 = tokens[index].data;
+			}
+		}
+	
+		if(!expect(K_IN)){
+			if(!cnext()) gnext(); //Throws error in the method itself
+			fire_syntax_error("Expected 'in' got '" + gnext().data + "'", gnext().columnno, gnext().lineno, gnext().file_path);
+		}
+		index++;//token = in
+		
+		if(traverseMode){
+			//expect traverse(array)	
+		}else{
+			//expect range(x1, x2)
+			//expect range(x2)
+			//expect array
+		}
+		//index++;//
+		
+		//Temp loop to skip iterator part
+		while(cnext() && !expect(CURLYBRACKETSTART) && !expect(LINE_END)){
+			index++;
+		}
+
+		if(!expect(CURLYBRACKETSTART)){
+			if(!cnext()) gnext(); //Throws error in the method itself
+			fire_syntax_error("Expected '{' or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+		}
+		index++; //current token = CURLYBRACKETSTART
+		
+		/* Parse For Loop Body */
+		//Temp loop to skip body/block part
+		while(cnext() && !expect(CURLYBRACKETEND)){
+			index++;
+		}
+		
+		if(!expect(CURLYBRACKETEND)){
+			if(!cnext()) gnext(); //Throws error in the method itself
+			fire_syntax_error("Expected '}' or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+		}
+		index++; //current token = CURLYBRACKETEND
+		
+		LOG_TOKEN("Keyword.for PARSED");
 	}
 	if (skeyword == "while"){
 		/* 
@@ -221,12 +318,17 @@ void Parser::handleKeyword(){
 		///		'{' expr '}'
 		///3) fun IDENTIFIER '(' ')' '{' expr '}' //if void type no return type required
 		
+		LOG_TOKEN("Keyword.fun Token before Identifier");
 		if(!expect(IDENTIFIER)){
 			if(!cnext()) gnext(); //Throws error in the method itself
 			fire_syntax_error("Expected Identifier or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
 		}
 		index++; //current token = IDENTIFIER
 		
+		LOG_TOKEN("Keyword.fun Token after Identifier");
+		FunctionStatement fdef(tokens[index].data);
+
+		LOG_TOKEN("Keyword.fun Token before '('");
 		if(!expect(CIRCLEBRACKETSTART)){
 			if(!cnext()) gnext(); //Throws error in the method itself
 			fire_syntax_error("Expected '(' or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
@@ -234,13 +336,16 @@ void Parser::handleKeyword(){
 		index++; //current token = CIRCLEBRACKETSTART
 		
 		/* Parse Arguments */
+		fdef.params.clear(); //As Params are not supported for now TODO()
 		
+		LOG_TOKEN("Keyword.fun Token before ')'");
 		if(!expect(CIRCLEBRACKETEND)){
 			if(!cnext()) gnext(); //Throws error in the method itself
 			fire_syntax_error("Expected ')' or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
 		}
 		index++; //current token = CIRCLEBRACKETEND
 		
+		LOG_TOKEN("Keyword.fun Token before Return Type");
 		/* Parse Return Type */
 		if(cnext() && !expect(CURLYBRACKETSTART)){
 			//If next token is not  '{' there has to be '> RETURN_TYPE'
@@ -250,12 +355,14 @@ void Parser::handleKeyword(){
 			}
 			index++; //current token = LGREATER
 		
-			if(!expect(IDENTIFIER) || !expect(K_INT) || !expect(K_STRING) || !expect(K_BOOL)){
+			LOG_TOKEN("Keyword.fun Token before Return Identifier");
+			if(!expect(IDENTIFIER) && !expect(K_INT) && !expect(K_STRING) && !expect(K_BOOL)){
 				if(!cnext()) gnext(); //Throws error in the method itself
 				fire_syntax_error("Expected return type got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
 			}
 			index++; //current token = IDENTIFIER or Data Type
 			Token return_type_token = tokens[index];
+			fdef.return_type = return_type_token.data;
 		}
 		
 		if(expect(LINE_END)){
@@ -263,6 +370,7 @@ void Parser::handleKeyword(){
 			index++;
 		}
 		
+		LOG_TOKEN("Keyword.fun Token before '{'");
 		if(!expect(CURLYBRACKETSTART)){
 			if(!cnext()) gnext(); //Throws error in the method itself
 			fire_syntax_error("Expected '{' or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
@@ -275,8 +383,8 @@ void Parser::handleKeyword(){
 		}
 
 		/* Parse Function Body */
-		std::vector<Expression> body; //TODO(USE Statement class)
 		while(cnext() && !expect(CURLYBRACKETEND)){
+			LOG_TOKEN("Keyword.fun Token from While before increment");
 			index++;
 			//Parse each line of function body
 			if(expect(LINE_END)){
@@ -285,21 +393,25 @@ void Parser::handleKeyword(){
 				index++;
 				continue;
 			}
-			body.push_back(parseExpr());
-			std::cout << index << "] Parsed Exp > Tokens : " << body.size() << std::endl;
+			handleKeyword(&fdef.body);
+			std::cout << index << "] Parsed Exp > Tokens : " << fdef.body.size() << std::endl;
+			LOG_TOKEN("Keyword.fun Token from While after increment");
 		}
-				
+
 		if(expect(LINE_END)){
 			//function body is on next line
 			index++;
 		}
-			
+		
+		LOG_TOKEN("Keyword.fun Token before '}'");
 		if(!expect(CURLYBRACKETEND)){
 			if(!cnext()) gnext(); //Throws error in the method itself
 			fire_syntax_error("Expected '}' or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
 		}
 		index++; //current token = CURLYBRACKETEND
 
+		LOG_TOKEN("Keyword.fun Token completion");
+		std::cout << "function() : PARSED" << std::endl;
 	}
 	if (skeyword == "if"){
 		//if (exp) { exps }
@@ -323,6 +435,7 @@ void Parser::handleKeyword(){
 Expression Parser::parseExpr(int id){
 	id++;
 
+	LOG_TOKEN("ParseExpr Token on called");
 	if(tokens[index].type == LINE_END){
 		fire_syntax_error("Parser cannot start from line ending.", gnext().columnno, gnext().lineno, gnext().file_path);
 	}
@@ -330,7 +443,6 @@ Expression Parser::parseExpr(int id){
 	//STRING EXPRESSION PARSING
 	if(tokens[index].type == STRING){
 		StringExprPoint str = parseStringExpr();
-		str.tree();
 		Expression expstr(STRING_EXP);
 		expstr.stringExp = str;
 		return expstr;
@@ -351,10 +463,11 @@ Expression Parser::parseExpr(int id){
 		expnum.numExp = num;
 		return expnum;
 	}
+	Expression nullVal;
+	return nullVal;
 }
 
 StringExprPoint Parser::parseStringExpr(int id){
-	
 	if (tokens[index].type != STRING){
 		Token current = tokens[index];
 		fire_illegal_argument_error("Token at current index is not of type String but String was required got '"+current.data+"'", current.columnno, current.lineno, current.file_path);
@@ -367,14 +480,16 @@ StringExprPoint Parser::parseStringExpr(int id){
 		leftExp.s2 = "";
 		leftExp.str_op = STR_ADD;
 		leftExp.sHasExpr = false;
-		std::cout << "Creating string compiled\n";
+		std::cout << "Returning String Expression with simple value." << std::endl;
 		return leftExp;
 	}
 	
 	if(!expect(PLUS) && !expect(STAR)){
 		fire_syntax_error("Expected '+' '*' got '" + gnext().data + "'", gnext().columnno, gnext().lineno, gnext().file_path);
 	}
+	
 	index++; //token = '+' or '*'
+	index++;
 
 	char op = tokens[index].data[0];
 
@@ -388,9 +503,7 @@ StringExprPoint Parser::parseStringExpr(int id){
 		exp.se2 = &right;
 		exp.str_op = STR_ADD;
 		exp.sHasExpr = true;
-		std::cout << "Returning String Expression with value ";
-		exp.tree();
-		std::cout << std::endl;
+		std::cout << "Returning String Expression with complex value." << std::endl;
 		return exp;
 	}
 
@@ -432,6 +545,7 @@ BoolExprPoint Parser::parseBoolExpr(int id){
 
 NumberExprPoint Parser::parseIntExpr(int id){
 
+	LOG_TOKEN("ParseINTExpr Token on called");
 	if (tokens[index].type != INTEGER){
 		Token current = tokens[index];
 		fire_illegal_argument_error("Token at current index is not of type Integer but Integer was required, got '"+current.data+"'", current.columnno, current.lineno, current.file_path);
@@ -442,14 +556,13 @@ NumberExprPoint Parser::parseIntExpr(int id){
 	int left = string_to_int(tokens[index].data);
 	
 	if(gnext().type == LINE_END){
-
 		NumberExprPoint leftNumExp(left);
 		leftNumExp.n2 = 0;
+		leftNumExp.ne2 = nullptr;
 		leftNumExp.op = OP_ADD;
 		leftNumExp.hasExpr = false;
-		std::cout << "Returning Integer Expression with value " << leftNumExp.n1 << std::endl;
+		std::cout << "Returning Integer Expression with simple value." << std::endl;
 		return leftNumExp;
-	
 	}
 
 	if(!expect(PLUS) && !expect(MINUS) && !expect(STAR) && !expect(RSLASH)){
@@ -457,30 +570,35 @@ NumberExprPoint Parser::parseIntExpr(int id){
 	}
 	index++;
 	
+	LOG_TOKEN("ParseINTExpr Token after expect operator");
 	num_operation op = get_op(tokens[index].type);
 	index++;
 	
+	LOG_TOKEN("ParseINTExpr Token increment");
 	NumberExprPoint right;
 	while(tokens[index].type != LINE_END && cnext()){
-		std::cout << id << "] in while : " << tokens[index].to_string() << std::endl;
+		std::cout << id << "] While b-Parse : " << tokens[index].to_string() << std::endl;
 		right = parseIntExpr(id);
-		std::cout << id << "] in while++";
+		if(tokens[index].type == LINE_END) break;
 		index++;
+		LOG_TOKEN("ParseINTExpr Token after While Increment");
+		std::cout << id << "] While a-Parse : " << tokens[index].to_string() << std::endl;
 	}
 
+	LOG_TOKEN("ParseINTExpr Token after While.completed");
 	std::cout << id << "] out of while\n";
-	right.tree();
 
 	if(right.isnull){
 		fire_syntax_error("Expected numeriacal expression got 'null'", gnext().columnno, gnext().lineno, gnext().file_path);
 	}
-
+	int n2 = 0;
+	if (op == OP_MUL) n2 = 1;
 	NumberExprPoint exp(left);
-	exp.n2 = 0;
+	exp.n2 = n2;
 	exp.ne2 = &right;
 	exp.hasExpr = true;
 	exp.op = op;
-	std::cout << "Returning Integer Expression with value ";
+	std::cout << "Returning Integer Expression with complex value.";
 	exp.tree();
 	std::cout << std::endl;
 	return exp;

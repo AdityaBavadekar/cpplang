@@ -12,6 +12,13 @@ $$
         delete \\
         using \\
         Assign \\
-    \end{cases}
+    \end{cases} \\
+    [\text{Operator}] &\to [\text{+ - = /}]\\
+    [\text{Expression}] &\to [\text{Operand operator Operand}] \\
+    [\text{Assign}] &\to
+    \begin{cases}
+        \text{Type Identifier = Expr} \\
+        \text{Identifier operator Expr} \\
+    \end{cases} \\
 \end{align}
 $$

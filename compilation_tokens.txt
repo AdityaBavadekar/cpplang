@@ -1,2 +1,7 @@
-Tokens found 31
-[(INT) int] [(IDENTIFIER) i] [(EQUAL) =] [(INTEGER) 1] [(LINE_END) ...] [(STRING) string] [(IDENTIFIER) s] [(EQUAL) =] [(STRING) s] [(LINE_END) ...] [(LINE_END) ...] [(FUN) fun] [(IDENTIFIER) addTwoNumbers] [(CIRCLEBRACKETSTART) (] [(CIRCLEBRACKETEND) )] [(LGREATER) >] [(IDENTIFIER) HI] [(CURLYBRACKETSTART) {] [(LINE_END) ...] [(INT) int] [(IDENTIFIER) i] [(EQUAL) =] [(INTEGER) 0] [(LINE_END) ...] [(RETURN) return] [(IDENTIFIER) s] [(SEMI) ;] [(LINE_END) ...] [(CURLYBRACKETEND) }] [(LINE_END) ...] [(END_OF_FILE) ...] 
+Tokens found 23
+00 [(INT) int]	01 [(IDENTIFIER) i]	02 [(EQUAL) =]	03 [(INTEGER) 23]	04 [(LINE_END) ...]
+	05 [(INT) int]	06 [(IDENTIFIER) i]	07 [(EQUAL) =]	08 [(INTEGER) 32]
+	09 [(PLUS) +]	10 [(INTEGER) 101]	11 [(LINE_END) ...]	12 [(INT) int]
+	13 [(IDENTIFIER) i]	14 [(EQUAL) =]	15 [(INTEGER) 44]	16 [(PLUS) +]
+	17 [(INTEGER) 1]	18 [(PLUS) +]	19 [(INTEGER) 11]	20 [(LINE_END) ...]
+	21 [(LINE_END) ...]	22 [(END_OF_FILE) EOF]	

@@ -20,6 +20,7 @@ CTokenizer::CTokenizer(std::string _file_path): file_path(_file_path), line_coun
 		std::cerr << "Error : Could not open the file \nFile : [" << file_path << "]" << std::endl;
 		sysexit();
 	}
+	std::cout << "Tokenizing File : " << file_path << std::endl;
 }
 
 void CTokenizer::tokenize(){
@@ -29,10 +30,20 @@ void CTokenizer::tokenize(){
 std::string CTokenizer::string_list(){
 	std::stringstream s;
 	s << "Tokens found " << tokens.size() << std::endl;
+	std::cout << "\t";
+	int tabs = 0;
 	for(int i = 0; i< tokens.size(); i++){
-		s << tokens[i].to_string() + " ";//"\n";
+		if(i < 10) s << "0";
+		s << i << " " << tokens[i].to_string();
+		if(tabs < 4){
+			s << "\t";//"\n";
+			tabs++;
+		}else{
+			tabs = 1;
+			s << "\n\t";
+		}
 	}
-	return s.str();
+	return s.str()+"\n";
 }
 
 Token CTokenizer::create_token(std::string data){
