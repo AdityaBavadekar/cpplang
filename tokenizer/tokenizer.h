@@ -13,22 +13,23 @@ struct Token{
 	int type;
 	int lineno;
 	int columnno;
+	int indentLevel;
 	std::string file_path;
 
 	std::string to_string(){
 		std::stringstream s;
-		s << "[(" << getTypeStringforType(type) << ") " << data << "]";
+		s << "[{" << indentLevel << "}(" << getTypeStringforType(type) << ") " << data << "]";
 		return s.str();
 	}
 	
 };
-
 
 class CTokenizer {
 	private:
 		std::string file_path;
 		Mediator* md;
 		bool interactive;
+		int currentIndentLevel;
 		int line_counter;
 		int column_counter;
 		std::string cline; // Current Line
@@ -39,7 +40,7 @@ class CTokenizer {
 		CTokenizer(std::string name, Mediator* md);
 		CTokenizer(std::string _file_path);
 		void tokenize();
-		std::string string_list();
+		std::string string_list(bool addHiddedTokens);
 		std::vector<Token> get_tokens();
 		~CTokenizer();
 	private:

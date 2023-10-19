@@ -12,7 +12,7 @@ using namespace std;
 
 #define LOG_TOKEN(msg) std::cout << __LINE__ << " Current Token : " << tokens[index].to_string();\
 	std::cout << "\t-MSG:" << msg << std::endl;
-Parser::Parser(std::vector<Token> _tokens, std::vector<Expression>* _returnExprs) : tokens(_tokens), returnExpressions(_returnExprs), index(0),logger("Parser"){}
+Parser::Parser(std::vector<Token> _tokens, std::vector<Expression>* _returnExprs, std::vector<Statement*>* _stmnts) : tokens(_tokens), returnExpressions(_returnExprs), stmnts(_stmnts), index(0),logger("Parser"){}
 
 void Parser::parse(){
 	_parse();
@@ -26,7 +26,7 @@ void Parser::_parse(){
 		
 		if(tk.type == END_OF_FILE) break;
 		
-		if(tk.type >= 45 && tk.type <= 70)	handleKeyword(returnExpressions);
+		if(tk.type >= TOKEN_KEYWORD_START && tk.type <= TOKEN_KEYWORD_END)	handleKeyword(returnExpressions);
 		
 		if(tk.type == IDENTIFIER) handleIdentifier();
 		
@@ -35,16 +35,24 @@ void Parser::_parse(){
 	std::cout << "******* Tokens Parsed without Errors ******* " << std::endl;
 }
 
-void Parser::skipSpace(){
-	if (cnext() && gnext().type == SPACE) index++;
+
+void Parser::skipCircularBracketStart(){
+	if(cnext() && gnext().type == CIRCLEBRACKETSTART) index++;
+}
+
+void Parser::skipCircularBracketEnd(){
+	if(cnext() && gnext().type == CIRCLEBRACKETSTART) index++;
+}
+
+void Parser::skipSemiColon(){
+	if(cnext() && gnext().type == SEMI) index++;
 }
 
 /* 
 	Returns has next token or not.
  */
 bool Parser::cnext(){
-	int max = tokens.size() - 1;
-	return (index < max);
+	return index < tokens.size() - 1;
 }
 
 /* 
@@ -76,24 +84,194 @@ bool Parser::expect(int type){
 	return tokens[index+1].type == type;
 }
 
-
 void Parser::addExpression(Expression exp, std::vector<Expression>* returnExprs = nullptr){
 	if(returnExprs == nullptr) returnExpressions->push_back(exp);
 	else returnExprs->push_back(exp);
+}
+
+void Parser::addStatement(Statement exp, std::vector<Statement*>* stmntSptrs = nullptr){
+	if(stmntSptrs == nullptr) stmntSptrs->push_back(&exp);
+	else stmntSptrs->push_back(&exp);
 }
 
 void Parser::handleKeyword(std::vector<Expression>* returnExprs = nullptr){
 	Token tk = tokens[index];
 	std::string skeyword = tk.data;
 	LOG_TOKEN("Keyword Token");
+
+	if (tk.type == K_PUBLIC || tk.type == K_PRIVATE || tk.type == K_PROTECTED){
+		switch (gnext().type) //gnext() throws error if there no next Token
+		{
+			case K_CLASS:
+				index++;
+				handleKeyword(returnExprs);
+				break;
+			default:
+				fire_syntax_error("Expected 'class' after access modifier got '" + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+				break;
+		}
+	}
+
 	if (skeyword == "class"){
+		//Previous token mostly will be an access modifier
+		access_modifier_type access;
+		if(index != 0){
+			Token tk = tokens[index-1]; 
+			switch (tk.type)
+			{
+				case K_PUBLIC:
+					access = ACCESS_PUBLIC;
+					break;
+				case K_PRIVATE:
+					access = ACCESS_PRIVATE;
+					break;
+				case K_PROTECTED:
+					access = ACCESS_PROTECTED;
+					break;
+				default:
+					break;
+			}
+		}else{
+			//Default would be Private
+			access = ACCESS_PRIVATE;
+		}
+
+		/* 
+			ACCESS_MODIFIER class IDENTIFIER > parent_classes {
+				A) ---- assignments or declarations ----
+				B) ---- functions ----
+					init(){}
+					clear(){}
+					custom functions
+				C) ---- complex statements (for latter) ----
+			}
+		*/
 		
+		LOG_TOKEN("Keyword.class Token before Identifier");
+		if(!expect(IDENTIFIER)){
+			if(!cnext()) gnext(); //Throws error in the method itself
+			fire_syntax_error("Expected Identifier or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+		}
+		index++; //current token = IDENTIFIER
+		
+		LOG_TOKEN("Keyword.class Token after Identifier");
+		ClassDef cdef(tokens[index].data, access);
+
+		LOG_TOKEN("Keyword.class Token before '('");
+		if(!expect(CIRCLEBRACKETSTART)){
+			if(!cnext()) gnext(); //Throws error in the method itself
+			fire_syntax_error("Expected '(' or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+		}
+		index++; //current token = CIRCLEBRACKETSTART
+		
+		/* Parse Arguments */
+		cdef.params.clear(); //As Params are not supported for now TODO()
+		
+		LOG_TOKEN("Keyword.class Token before ')'");
+		if(!expect(CIRCLEBRACKETEND)){
+			if(!cnext()) gnext(); //Throws error in the method itself
+			fire_syntax_error("Expected ')' or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+		}
+		index++; //current token = CIRCLEBRACKETEND
+		
+		LOG_TOKEN("Keyword.class Token before Superclasses '>' ");
+		/* Parse Superclasses */
+		if(cnext() && !expect(CURLYBRACKETSTART)){
+			//If next token is not  '{' there has to be superclass assigned
+			if(!expect(LGREATER)){
+				if(!cnext()) gnext(); //Throws error in the method itself
+				fire_syntax_error("Expected '>' got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+			}
+			index++; //current token = LGREATER
+		
+			LOG_TOKEN("Keyword.class Token before Superclasses");
+			if(!expect(IDENTIFIER)){
+				if(!cnext()) gnext(); //Throws error in the method itself
+				fire_syntax_error("Expected a superclass identifier or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+			}
+			index++; //current token = IDENTIFIER or Data Type
+			std::string superclass_name = tokens[index].data;
+			cdef.superclasses.push_back(superclass_name);
+			std::cout << "Saved superclass '" << superclass_name << std::endl;
+
+			while (cnext() && !expect(LINE_END) && !expect(CURLYBRACKETSTART))
+			{
+
+				bool commaNeeded = index+2 < tokens.size() && tokens[index+2].type == IDENTIFIER;
+				if(commaNeeded){
+					if(!expect(COMMA)){
+						if(!cnext()) gnext(); //Throws error in the method itself
+						fire_syntax_error("Expected a ',' before superclass name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);		
+					}
+					index++; //token = ','
+				}
+				
+				if(!expect(IDENTIFIER)){
+					if(!cnext()) gnext(); //Throws error in the method itself
+					fire_syntax_error("Expected a superclass identifier or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+				}
+				index++; //current token = IDENTIFIER or Data Type
+				superclass_name = tokens[index].data;
+				cdef.superclasses.push_back(superclass_name);
+				std::cout << "Saved superclass '" << superclass_name << std::endl;
+			}
+		}
+		
+		if(expect(LINE_END)){
+			//function body is on next line
+			index++;
+		}
+		
+		LOG_TOKEN("Keyword.class Token before '{'");
+		if(!expect(CURLYBRACKETSTART)){
+			if(!cnext()) gnext(); //Throws error in the method itself
+			fire_syntax_error("Expected '{' or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+		}
+		index++; //current token = CURLYBRACKETSTART
+		
+		if(expect(LINE_END)){
+			//function body is on next line
+			index++;//current token = LINE_END
+		}
+
+		/* Parse Class Body */
+		while(cnext() && !expect(CURLYBRACKETEND)){
+			LOG_TOKEN("Keyword.class Token from While before increment");
+			index++;
+			//Parse each line of function body
+			if(tokens[index].type == LINE_END){
+				std::cout<<"Skipping Line ending\n";
+				//function body is on next line
+				continue;
+			}
+			handleKeyword(&cdef.body);
+			std::cout << index << "] Parsed Exp > Exps : " << cdef.body.size() << std::endl;
+			LOG_TOKEN("Keyword.class Token from While after increment");
+			cdef.tree();
+		}
+
+		if(expect(LINE_END)){
+			//function body is on next line
+			index++;
+		}
+		
+		LOG_TOKEN("Keyword.class Token before '}'");
+		if(!expect(CURLYBRACKETEND)){
+			if(!cnext()) gnext(); //Throws error in the method itself
+			fire_syntax_error("Expected '}' or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+		}
+		index++; //current token = CURLYBRACKETEND
+
+		LOG_TOKEN("Keyword.class Token completion");
+		std::cout << "class() : PARSED" << std::endl;
+		cdef.tree();
 	}
 	
 	/* VARIABLE DECLARATION OR ASSIGNMENT */
 	if (skeyword == "int"){
-		
+
 		/// int IDENTIFIER '=' expr
+
 		LOG_TOKEN("Keyword.int Token before Identifier");
 		std::cout << "int() -> " << tokens[index].data << std::endl;
 		if(!expect(IDENTIFIER)){
@@ -102,6 +280,8 @@ void Parser::handleKeyword(std::vector<Expression>* returnExprs = nullptr){
 		}
 		index++;
 		std::string name = tokens[index].data;
+		Statement::Structs::Assign intAssign(name);
+		Statement::Structs::Assign intTest(name);
 		LOG_TOKEN("Keyword.int Token after Identifier");
 		
 		LOG_TOKEN("Keyword.int Token before Equal");
@@ -117,7 +297,7 @@ void Parser::handleKeyword(std::vector<Expression>* returnExprs = nullptr){
 		LOG_TOKEN("Keyword.int Token after Equal.2");
 		//Parse Expr
 		Expression exp = parseExpr();
-		
+		intAssign.exp = exp;
 		LOG_TOKEN("Keyword.int Token after parseExpr");
 		addExpression(exp, returnExprs);
 		std::cout << "int() -> " << "PARSING COMPLETED" << std::endl;
@@ -326,7 +506,7 @@ void Parser::handleKeyword(std::vector<Expression>* returnExprs = nullptr){
 		index++; //current token = IDENTIFIER
 		
 		LOG_TOKEN("Keyword.fun Token after Identifier");
-		FunctionStatement fdef(tokens[index].data);
+		FunctionDef fdef(tokens[index].data);
 
 		LOG_TOKEN("Keyword.fun Token before '('");
 		if(!expect(CIRCLEBRACKETSTART)){
@@ -363,7 +543,7 @@ void Parser::handleKeyword(std::vector<Expression>* returnExprs = nullptr){
 			index++; //current token = IDENTIFIER or Data Type
 			Token return_type_token = tokens[index];
 			fdef.return_type = return_type_token.data;
-		}
+		}else fdef.return_type = "void";
 		
 		if(expect(LINE_END)){
 			//function body is on next line
@@ -394,7 +574,7 @@ void Parser::handleKeyword(std::vector<Expression>* returnExprs = nullptr){
 				continue;
 			}
 			handleKeyword(&fdef.body);
-			std::cout << index << "] Parsed Exp > Tokens : " << fdef.body.size() << std::endl;
+			std::cout << index << "] Parsed Exp > Exps : " << fdef.body.size() << std::endl;
 			LOG_TOKEN("Keyword.fun Token from While after increment");
 		}
 
@@ -412,6 +592,7 @@ void Parser::handleKeyword(std::vector<Expression>* returnExprs = nullptr){
 
 		LOG_TOKEN("Keyword.fun Token completion");
 		std::cout << "function() : PARSED" << std::endl;
+		fdef.tree();
 	}
 	if (skeyword == "if"){
 		//if (exp) { exps }
@@ -419,16 +600,41 @@ void Parser::handleKeyword(std::vector<Expression>* returnExprs = nullptr){
 	if (skeyword == "else"){
 		
 	}
-	if (skeyword == "del"){
+	if (skeyword == "delete"){
 		//del [IDENTIFIER](s)
+		LOG_TOKEN("Keyword.delete Token before Identifier");
+		std::vector<tp_identifier> names;
+		int i = -1;
+		while (!expect(LINE_END) && cnext())
+		{
+			i++; //Required to decide whether a Comma is needed or not.
+			//Incase of first iteration and last there should be 'no' comma 
+			//Eg: del num, r
+			if(i!=0){
+				if(!expect(COMMA) && index+2 < tokens.size() && tokens[index+2].type == IDENTIFIER){
+					if(!cnext()) gnext(); //Throws error in the method itself
+					fire_syntax_error("Expected a ',' before Idenntifier got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);		
+				}
+				index++; //token = ','
+			}
+
+			if(!expect(IDENTIFIER)){
+				if(!cnext()) gnext(); //Throws error in the method itself
+				fire_syntax_error("Expected Identifier or name got " + gnext().data, gnext().columnno, gnext().lineno, gnext().file_path);
+			}
+			index++;
+			names.push_back(tokens[index].data);
+			LOG_TOKEN("Keyword.delete Token after while iteration.")
+		}
+		LOG_TOKEN("Keyword.delete Token after completion")
+		std::cout << "Delete (" << names.size() << ")" << std::endl;
 	}
 	if (skeyword == "as"){
-		//del [IDENTIFIER](s)
+		//[IDENTIFIER as IDENTIFIER
 	}
 	if (skeyword == "using"){
-		//del [IDENTIFIER](s)
+		//UNKNOWN SYNTAX
 	}
-
 }
 
 //TODO(Use Return type as pointers)
@@ -577,17 +783,13 @@ NumberExprPoint Parser::parseIntExpr(int id){
 	LOG_TOKEN("ParseINTExpr Token increment");
 	NumberExprPoint right;
 	while(tokens[index].type != LINE_END && cnext()){
-		std::cout << id << "] While b-Parse : " << tokens[index].to_string() << std::endl;
 		right = parseIntExpr(id);
 		if(tokens[index].type == LINE_END) break;
 		index++;
 		LOG_TOKEN("ParseINTExpr Token after While Increment");
-		std::cout << id << "] While a-Parse : " << tokens[index].to_string() << std::endl;
 	}
 
 	LOG_TOKEN("ParseINTExpr Token after While.completed");
-	std::cout << id << "] out of while\n";
-
 	if(right.isnull){
 		fire_syntax_error("Expected numeriacal expression got 'null'", gnext().columnno, gnext().lineno, gnext().file_path);
 	}

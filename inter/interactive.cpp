@@ -29,19 +29,24 @@ int interactive_Main(){
 	CTokenizer tokenizer(STREAM_NAME, &md);
 	
 	std::cout << "-------- INTERACTIVE MODE --------" << std::endl;
+	std::cout << "Type \"exit()\" or \"quit()\" to exit" << std::endl;
 	SHOW_INPUT_HINT();
 	
 	std::string input;
 	std::getline(std::cin, input);
 	
 	while(input != "exit()" && input != "quit()"){
-		md.setinput(input);
-		try{
-			tokenizer.tokenize();
-		}catch(...){
-			std::cerr << "Error Occurred!\n" << "Unknown Exception." << std::endl;
+		if(input == "exit"){
+			std::cout << "Use exit() or quit() to exit" << std::endl;
+		}else {
+			md.setinput(input);
+			try{
+				tokenizer.tokenize();
+			}catch(...){
+				std::cerr << "Error Occurred!\n" << "Unknown Exception." << std::endl;
+			}
+			std::cout << tokenizer.string_list(false) << std::endl;
 		}
-		std::cout << tokenizer.string_list() << std::endl;
 		SHOW_INPUT_HINT();
 		std::getline(std::cin, input);
 	}

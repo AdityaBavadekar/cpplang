@@ -12,7 +12,7 @@ std::string getTypeStringforType(int type){
 		return "IDENTIFIER";
 		break;
 	case INTEGER :
-		return "INTEGER";
+		return "INTEGER(type)";
 		break;
 	case ASSIGNMENT :
 		return "ASSIGNMENT";
@@ -21,13 +21,13 @@ std::string getTypeStringforType(int type){
 		return "PRINT";
 		break;
 	case STRING :
-		return "STRING";
+		return "STRING(type)";
 		break;
 	case END_OF_FILE :
 		return "END_OF_FILE";
 		break;
 	case BOOL :
-		return "BOOL";
+		return "BOOL(type)";
 		break;
 	case NEWLINE :
 		return "NEWLINE";
@@ -220,6 +220,10 @@ std::string getTypeStringforType(int type){
 		break;
 	case K_IN :
 		return "IN";
+		break;
+		break;
+	case K_DELETE :
+		return "DELETE";
 		break;
 	case LINE_END :
 		return "LINE_END";

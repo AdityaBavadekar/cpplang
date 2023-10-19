@@ -27,15 +27,17 @@ void CTokenizer::tokenize(){
 	_tokenize();
 }
 
-std::string CTokenizer::string_list(){
+std::string CTokenizer::string_list(bool addHiddedTokens = true){
 	std::stringstream s;
 	s << "Tokens found " << tokens.size() << std::endl;
-	std::cout << "\t";
 	int tabs = 0;
 	for(int i = 0; i< tokens.size(); i++){
+		if(tokens[i].type == LINE_END || tokens[i].type == END_OF_FILE){
+			if(!addHiddedTokens) continue;
+		}
 		if(i < 10) s << "0";
 		s << i << " " << tokens[i].to_string();
-		if(tabs < 4){
+		if(tabs != 0 && tabs < 4){
 			s << "\t";//"\n";
 			tabs++;
 		}else{
@@ -51,6 +53,7 @@ Token CTokenizer::create_token(std::string data){
 	tk.data = data;
 	tk.lineno = line_counter;
 	tk.columnno = column_counter;
+	tk.indentLevel = currentIndentLevel;
 	tk.file_path = file_path;
 	tk.type = -1;
 	return tk;
@@ -100,7 +103,7 @@ void CTokenizer::parseStringLiteral(){
 	if(s != "") addToken(STRING, s);
 
 	// Change current char from the " or ' to next one.
-	if (column_counter != columnlimit) column_counter++; 
+	if (column_counter != columnlimit) column_counter++;
 }
 
 void CTokenizer::parseMultilineComment(){
@@ -171,7 +174,8 @@ void CTokenizer::parseInteger(){
 void CTokenizer::tryParseIdentifier(){
 	char c = cline[column_counter - 1];
 	std::string identifier = "";
-	if (!isIdentifierChar(c)) return;
+	//first char cannot be digit
+	if (!isIdentifierChar(c) || isdigit(c)) return;
 	
 	while(isIdentifierChar(c)){
 		identifier += c;
@@ -186,6 +190,19 @@ void CTokenizer::tryParseIdentifier(){
 			addToken(stat, identifier);
 		}else addToken(IDENTIFIER,identifier);
 	}
+}
+
+int getIndentLevel(std::string& line, int startLevel = 0){
+	for (size_t i = 0; i < line.size(); i++)
+	{
+		char c = line[i];
+		if(c == ' '){
+			startLevel++;
+		}else if(c == '\t'){
+			startLevel += 4;
+		}else break;
+	}
+	return startLevel;
 }
 
 void CTokenizer::_tokenize(){
@@ -273,7 +290,7 @@ void CTokenizer::_tokenize(){
 					addToken(AND, "&");
 					break;
 				case '@':
-					addToken(AT, "*");
+					addToken(AT, "@");
 					break;
 				case '%':
 					addToken(PERCENT, "*");
@@ -301,7 +318,7 @@ void CTokenizer::_tokenize(){
 					break;
 			}
 		}
-		if(tokens.size() > 0 && tokens[column_counter-1].type != LINE_END){
+		if(tokens.size() > 0 && column_counter>0 && tokens[column_counter-1].type != LINE_END){
 			//Avoid adding multiple consecutive tokens of line end
 			addToken(LINE_END, "...");
 		}
@@ -332,6 +349,7 @@ bool CTokenizer::load_next_line(){
 	column_counter = 0;
 	// Store last column index
 	columnlimit = cline.length();
+	currentIndentLevel = getIndentLevel(cline);
 	return true;
 }
 
@@ -348,8 +366,5 @@ std::vector<Token> tokenizer_Main(std::string file_path){
 	CTokenizer ctk(FILE);
 	ctk.tokenize();
 	std::cout << ctk.string_list();
-	std::ofstream f("..\\compilation_tokens.txt");
-	f << ctk.string_list();
-	f.close();
 	return ctk.get_tokens();
 }

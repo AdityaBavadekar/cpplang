@@ -138,7 +138,7 @@ bool contains(const std::string& s, const std::string& x) {
 }
 
 bool isIdentifierChar(char c){
-	return (isalpha(c) || c == '_');
+	return (isalpha(c) || c == '_' || isdigit(c));
 }
 
 int isKeyword(std::string s){

@@ -19,25 +19,8 @@ struct AST {
 	}
 };
 
-enum _stmnt_type_ {
-	IF_STMNT, WHILE_STMNT, FOR_STMNT, WHEN_STMNT, TRY_STMNT, DELETE_STMNT, ASSIGN_STMNT
-};
-
-struct Statment{
-	_stmnt_type_ type;
-	union t{
-		struct FunctionDef{};
-		struct ClassDef{};
-		struct Assign{};
-		struct Try{};
-		struct Return{};
-		struct While{};
-		struct For{};
-		struct When{};
-		struct Delete{};
-		struct If{};
-	};
-	int lineno;
+enum expr_type {
+	NUMBER_EXP=0,STRING_EXP=1,BOOL_EXP=2
 };
 
 enum num_operation {
@@ -52,10 +35,22 @@ enum string_op {
 	STR_MUL=1
 };
 
+enum access_modifier_type{
+	ACCESS_PUBLIC = 0,
+	ACCESS_PROTECTED = 1,
+	ACCESS_PRIVATE = 2,
+};
+
 #define tp_identifier std::string
 
 class AbstPrintable{
 	public: virtual void tree() = 0;
+};
+
+struct Scope{
+	std::string scope;
+	Scope():scope("unk"){};
+	Scope(std::string _scope):scope(scope){};
 };
 
 struct Null{
@@ -66,6 +61,11 @@ struct Null{
 	bool isnull;
 	Null():isnull(true){};
 	Null(bool b):isnull(b){};
+};
+
+struct ConstructorParam{
+	tp_identifier name;
+	tp_identifier type;
 };
 
 class NumberExprPoint : public Null, public AbstPrintable{
@@ -144,8 +144,13 @@ class BoolExprPoint : public Null,public AbstPrintable{
 		BoolExprPoint():Null(true){};
 };
 
-enum expr_type {
-	NUMBER_EXP=0,STRING_EXP=1,BOOL_EXP=2
+class ListExprPoint : public Null,public AbstPrintable{
+	public:
+		//TODO
+		void tree(){
+			std::cout<< "[ListExprPoint]" << std::endl;
+		}
+		ListExprPoint():Null(false){};
 };
 
 class Expression : public Null{
@@ -175,21 +180,87 @@ class Expression : public Null{
 		Expression(): Null(true){};
 };
 
-struct ConstructorParam{
-	tp_identifier name;
-	tp_identifier type;
-};
-
-class FunctionStatement : public Null{
+class FunctionDef : public Null{
 	public:
 		tp_identifier name; 
 		std::vector<Expression> body;
 		std::vector<ConstructorParam> params;
 		std::string return_type;
+		/*
+			fun IDENTIFIER(params) > RETURN_TYPE {
+				//body expressions/statements
+			}
+		*/
 		void tree(){
-			std::cout<< "FunctionStatment " << name << "("<< params.size() << " args){" << body.size() <<" exprs }" << std::endl;
+			std::cout<< "FunctionDef " << name << "-> " << return_type << " ("<< params.size() << " args){" << body.size() <<" exprs }" << std::endl;
 		}
-		FunctionStatement(tp_identifier _name):name(_name){};
+		FunctionDef(tp_identifier _name):name(_name){};
+};
+
+class ClassDef : public Null,public AbstPrintable{
+	public:
+		/* Access Modifiers */
+		access_modifier_type access;
+		
+		/* Name of the class */
+		tp_identifier name;
+		
+		/* Constructor Parameters */
+		std::vector<ConstructorParam> params;
+
+		/*   Parent classes 
+			(May be use different class to also asign 
+			access modifiers to inheritance)
+		*/
+		std::vector<tp_identifier> superclasses;
+
+		/* 
+			Functions defined inside this class.
+			defaults are :-
+				- init() //Initialise constructor function
+				- clear() //Destroy destructor function
+		*/
+		//TODO("Use Function Statements not Definitions")
+		std::vector<FunctionDef> innerFunctions;
+
+		std::vector<Expression> body;
+		/* 
+			ACCESS_MODIFIER class IDENTIFIER : parent_classes {
+				A) ---- assignments or declarations ----
+				B) ---- functions ----
+					init(){}
+					clear(){}
+					custom functions
+				C) ---- complex statements (for latter) ----
+			}
+		*/
+
+		void tree(){
+			switch (access)
+			{
+				case ACCESS_PRIVATE:
+					std::cout << "private";
+					break;
+				case ACCESS_PROTECTED:
+					std::cout << "protected";
+					break;
+				case ACCESS_PUBLIC:
+					std::cout << "public";
+					break;
+			}
+			std::cout << " class " << name;
+			std::cout << "(" << params.size() << ") ";
+			if(superclasses.size() > 0){
+				for (size_t i = 0; i < superclasses.size(); i++)
+				{
+					std::cout << superclasses[i];
+					if(i < superclasses.size()-1) std::cout << ", ";
+				}
+			}else std::cout << "void ";
+			std::cout << " { " << body.size() << " Exprs, " << innerFunctions.size() << " Funs } " << std::endl;
+		}
+		ClassDef(tp_identifier _name):Null(false), name(_name),access(ACCESS_PRIVATE){};
+		ClassDef(tp_identifier _name, access_modifier_type _access):Null(false), name(_name),access(access){};
 };
 
 class Number: public Null{
@@ -223,4 +294,60 @@ class Number: public Null{
 		}
 };
 
+struct Statement{
+	enum _stmnt_type_ {
+		IF_STMNT, WHILE_STMNT, FOR_STMNT, WHEN_STMNT, TRY_STMNT, DELETE_STMNT, ASSIGN_STMNT
+	};
+	_stmnt_type_ type;
+	union Structs{
+		FunctionDef sFunDef;
+		ClassDef sClassDef;
+		struct Assign{
+			tp_identifier varName;
+			Expression exp;
+			Assign(tp_identifier _varName):varName(_varName){};
+		} sAssign;
+
+		struct Try{
+			std::vector<Statement*> body;
+			std::vector<Statement*> onCatchStatements;
+			ConstructorParam catchConstructor;
+		} sTry;
+		
+		struct Return{
+			enum return_stmnt_type{R_VOID=0, R_IDENTIFIER=1, R_EXPRESSION=2};
+			return_stmnt_type type;
+			union{
+				tp_identifier identifier;
+				Expression expression;
+			};
+			Return(return_stmnt_type _type):type(_type){};
+		} sReturn;
+
+		struct While{
+			Expression condition;
+			std::vector<Statement*> body;			
+		} sWhile;
+		struct For{
+
+		} sFor;
+		struct When{
+			struct WhenElement{
+				std::string caseValue;
+				std::vector<Statement*> body;
+			};
+			std::vector<WhenElement*> elements;
+			tp_identifier variable;
+			When(tp_identifier _variable):variable(_variable){};
+		} sWhen;
+		struct Delete{
+			std::vector<tp_identifier> identifiers;
+		} sDelete;
+		struct If{
+			Expression condition;
+			std::vector<Statement*> body;	
+		} sIf;
+	};
+	Statement(_stmnt_type_ _type):type(_type){};
+};
 #endif //AST_H

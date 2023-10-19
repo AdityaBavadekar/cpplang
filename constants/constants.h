@@ -20,6 +20,7 @@ const std::string KEYWORDS[] = {
 	"string",
 	"long",
 	"double",
+	"delete",
 	"for",
 	"break",
 	"continue",
@@ -126,10 +127,15 @@ enum TokenType {
 	K_THIS = 68,
 	K_CLEAR = 69,
 	K_IN = 70,
+	K_DELETE = 71,
+	// 70...80 reserved for new keywords
 	/* end keywords */
 	LINE_END = 81,
 	UNK = 80
 };
+
+const int TOKEN_KEYWORD_START = 45;
+const int TOKEN_KEYWORD_END = 80;
 
 const std::map<std::string, int> KEYWORD_TO_TYPE = {
 	{ "if", K_IF },
@@ -158,6 +164,7 @@ const std::map<std::string, int> KEYWORD_TO_TYPE = {
 	{ "this", K_THIS },
 	{ "clear", K_CLEAR },
 	{ "in", K_IN },
+	{ "delete", K_DELETE },
 };
 
 #endif //CONSTANTS_H

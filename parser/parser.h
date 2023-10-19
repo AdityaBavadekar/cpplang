@@ -13,10 +13,11 @@ class Parser {
 	private:
 		std::vector<Token> tokens;
 		std::vector<Expression>* returnExpressions;
+		std::vector<Statement*>* stmnts;
 		Logger logger;
 		int index;
 	public:
-		Parser(std::vector<Token> _tokens,std::vector<Expression>* _returnExprs);
+		Parser(std::vector<Token> _tokens,std::vector<Expression>* _returnExprs, std::vector<Statement*>* _stmnts);
 		void parse();
 	
 	private:
@@ -24,12 +25,15 @@ class Parser {
 		void handleKeyword(std::vector<Expression>* returnExprs);
 		void handleIdentifier();
 		bool hasNextToken();
-		void skipSpace();
+		void skipCircularBracketStart();
+		void skipCircularBracketEnd();
+		void skipSemiColon();
 		bool cnext();
 		Token gnext();
 		Token ignext();
 		bool expect(int type);
 		void addExpression(Expression exp, std::vector<Expression>* returnExprs);
+		void addStatement(Statement exp, std::vector<Statement*>* stmntSptrs);
 		Expression parseExpr(int id=0);
 		StringExprPoint parseStringExpr(int id=0);
 		BoolExprPoint parseBoolExpr(int id=0);
